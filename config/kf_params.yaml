@@ -25,3 +25,7 @@ V_certain: 5.0
 N_meas: 10
 # Measurement association log-likelihood threshold
 l_threshold: -5.0
+# True: will do state-measurement association. False: will use last measurement to update all tracks.
+# It's recommended to keel this True for multi target state estimation
+# You can set this False if you are sure that you are tracking a single target
+do_state_match: True

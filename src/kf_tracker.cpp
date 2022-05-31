@@ -57,6 +57,7 @@ target_frameid_("tag"),
 listen_tf_(true),
 do_update_step_(true),
 measurement_off_time_(2.0),
+do_state_match_(true),
 debug_(false)
 {
    nh_private_.param<double>("dt_pred", dt_pred_, 0.05);
@@ -79,6 +80,7 @@ debug_(false)
    nh_private.param<std::string>("apriltags_topic", apriltags_topic_, "tag_detections");
    nh_private.param<std::string>("target_frameid", target_frameid_, "tag");
    nh_private.param<bool>("listen_tf", listen_tf_, true);
+   nh_private.param<bool>("do_state_match", do_state_match_, true);
    
 
    initKF();
@@ -398,35 +400,49 @@ void KFTracker::updateTracks(ros::Time t)
          (*it).current_state.x = proj_state.x;
          (*it).current_state.P = proj_state.P;
 
-         // Measurement-state association. Find measurement with the highest log-likelihood
-         sensor_measurement best_m;
-         double max_LL = -99999.0; // Start with very low number for the log-likelihood
-         int m_index = 0; // index of measurement with max LL
-         for(int k=0; k < z.size(); k++)
+         if(do_state_match_)
          {
-            auto LL = logLikelihood((*it).current_state, z[k]);
-            if (LL > max_LL && z[k].id == (*it).id )
+            // Measurement-state association. Find measurement with the highest log-likelihood
+            sensor_measurement best_m;
+            double max_LL = -99999.0; // Start with very low number for the log-likelihood
+            int m_index = 0; // index of measurement with max LL
+            for(int k=0; k < z.size(); k++)
             {
-               max_LL = LL;
-               best_m = z[k];
-               m_index = k;
+               auto LL = logLikelihood((*it).current_state, z[k]);
+               if (LL > max_LL && z[k].id == (*it).id )
+               {
+                  max_LL = LL;
+                  best_m = z[k];
+                  m_index = k;
+               }
+            }
+            // Check if max_LL is acceptable
+            if(max_LL > l_threshold_)
+            {
+               // Do KF update step for this track
+               auto corrected_x = correctState((*it).current_state, z[m_index]);
+               (*it).current_state.x = corrected_x.x;
+               (*it).current_state.P = corrected_x.P;
+               (*it).n = (*it).n + 1;
+               // Remove measurement
+               z.erase(z.begin()+m_index);
+            }
+            else{
+               if(debug_)
+                  ROS_WARN("Could not do measurement association for this track. Log-likelihood = %f", max_LL);
             }
          }
-         // Check if max_LL is acceptable
-         if(max_LL > l_threshold_)
+         else /* Just use last measurement to update all tracks. #WARNING# Useful only for single object tracking */
          {
             // Do KF update step for this track
-            auto corrected_x = correctState((*it).current_state, z[m_index]);
+            auto corrected_x = correctState((*it).current_state, z[z.size()-1]);
             (*it).current_state.x = corrected_x.x;
             (*it).current_state.P = corrected_x.P;
             (*it).n = (*it).n + 1;
             // Remove measurement
-            z.erase(z.begin()+m_index);
+            z.erase(z.begin()+(z.size()-1));
          }
-         else{
-            if(debug_)
-               ROS_WARN("Could not do measurement association for this track. Log-likelihood = %f", max_LL);
-         }
+         
 
          // Update KF estimate to the current time t
          dt = t.toSec() - z_t;

@@ -136,6 +136,8 @@ private:
    tf::TransformListener tf_listener_; /**< TF listener for measurements */
    bool listen_tf_; /**< listens to TF to find transofrms of received measurements w.r.t. tracking_frame_ */
 
+   bool do_state_match_; /**< Whether to perform state-measurement association, or use last measurement for all tracks. RECOMMENDED to keep it true */
+
    bool debug_; /**< for printing debug message */
 
    /**
