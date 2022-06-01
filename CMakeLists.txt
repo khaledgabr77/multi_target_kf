@@ -54,3 +54,5 @@ target_link_libraries(kf_tracker ${catkin_LIBRARIES})
 add_executable(kf_tracker_node src/kf_tracker_node.cpp)
 add_dependencies(kf_tracker_node kf_tracker ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(kf_tracker_node kf_tracker ${catkin_LIBRARIES})
+
+add_dependencies(kf_tracker_node kf_tracker ${${multi_target_kf}_generate_messages_cpp} ${catkin_EXPORTED_TARGETS})
