@@ -10,7 +10,7 @@ q_vel_std: 1.0
 r_std: 0.5
 print_debug_msg: false
 # Provide estimate w.r.t this frame
-tracking_frame: 'map'
+tracking_frame: 'interceptor_odom'
 # Topic name of the tag detections
 apriltags_topic: '/tag_detections'
 # Frame name of the detected target
